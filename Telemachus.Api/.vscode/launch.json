@@ -1,0 +1,89 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Telemachus (Release)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "preLaunchTask": "build",
+      "args": [
+        "watch",
+        "run",
+        "--configuration",
+        "Release",
+        "--launch-profile",
+        "Telemachus",
+        "--verbosity",
+        "quiet"
+      ],
+      "cwd": "${workspaceFolder}/Telemachus",
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Telemachus (Debug)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/Telemachus",
+        "--configuration",
+        "Debug",
+        "--launch-profile",
+        "Telemachus"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "justMyCode": true
+    },
+    {
+      "name": "Telemachus (Debug DLL)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "dotnet",
+      "args": [
+        "${workspaceFolder}/Telemachus/bin/Debug/netcoreapp3.1/win-x64/Telemachus.dll",
+        "--configuration",
+        "Debug",
+        "--launch-profile",
+        "Telemachus"
+      ],
+      "cwd": "${workspaceFolder}/Telemachus",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "justMyCode": true
+    },
+    {
+      "name": "Telemachus (Clean)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": ["clean"],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Telemachus (Clean & Build)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": ["build", "--no-incremental"],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Telemachus (Attach)",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    }
+  ]
+}

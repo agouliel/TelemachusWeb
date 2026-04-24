@@ -1,0 +1,325 @@
+﻿@model Telemachus.Business.Models.Reports.ReportExportViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>@TempData["Title"]</title>
+    <style>
+        * {
+            font-family: 'Calibri', 'Arial', sans-serif !important;
+            font-size: 12px;
+        }
+        table, tr, td, th, tbody, thead, tfoot {
+            page-break-inside: avoid !important;
+        }
+
+        .container-fluid {
+            width: 100%;
+            padding-right: 15px;
+            padding-left: 15px;
+            margin-right: auto;
+            margin-left: auto;
+            box-sizing: border-box;
+        }
+
+        .table {
+            width: 100%;
+            margin-bottom: 1rem;
+            color: #212529;
+            border-collapse: collapse;
+        }
+
+            .table th,
+            .table td {
+                padding: 0.75rem;
+                vertical-align: top;
+                border-top: 1px solid #dee2e6;
+            }
+
+            .table thead th {
+                vertical-align: bottom;
+                border-bottom: 2px solid #dee2e6;
+            }
+
+            .table tbody + tbody {
+                border-top: 2px solid #dee2e6;
+            }
+
+        .table-condensed th,
+        .table-condensed td {
+            padding: 0.3rem;
+        }
+
+        .table-bordered {
+            border: 1px solid #dee2e6;
+        }
+
+            .table-bordered th,
+            .table-bordered td {
+                border: 1px solid #dee2e6;
+            }
+
+            .table-bordered thead th,
+            .table-bordered thead td {
+                border-bottom-width: 2px;
+            }
+
+
+        tr {
+            page-break-inside: avoid;
+        }
+
+        th {
+            font-size: 11px;
+        }
+
+        td {
+            font-size: 10px;
+            text-align: center;
+        }
+
+        .highlight {
+            font-size: 13px !important;
+            font-weight: bold !important;
+        }
+
+        .table > tbody > tr > td {
+            vertical-align: middle;
+            padding: 2px 4px;
+        }
+
+        .table > tbody > tr > th {
+            vertical-align: middle;
+            padding: 2px 4px;
+        }
+
+        .table > thead > tr > th {
+            vertical-align: middle;
+            padding: 2px 4px;
+        }
+
+        table.rob th,
+        table.rob td {
+            text-align: center;
+        }
+
+        .table.rob > thead > tr > th {
+        }
+
+        table.table-wrap {
+            width: 100%;
+        }
+        table.table-wrap tr.col-text-center > th{
+                text-align: center;
+        }
+        table.table-wrap tr > td {
+            vertical-align: top;
+            padding-right: 10px;
+        }
+        table.table-wrap tr > td:last-child {
+            padding-right: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <table class="table table-condensed table-bordered">
+            <tbody>
+                <tr>
+                    <th>@Html.DisplayFor((model) => model.Document)</th>
+                    <td class="highlight" rowSpan="2">@Html.DisplayFor((model) => model.VesselName)</td>
+                    <td class="highlight" rowSpan="2" colspan="4">@Html.DisplayFor((model) => model.OperatorName)</td>
+                </tr>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor((model) => model.Revision) @Html.DisplayFor((model) => model.Revision)
+                    </th>
+                </tr>
+                <tr>
+                    <th>@Html.DisplayNameFor((model) => model.Timestamp)</th>
+                    <td>@Html.DisplayFor((model) => model.Timestamp)</td>
+                    <th colspan="2">@Html.DisplayNameFor((model) => model.Remark)</th>
+                    <td colspan="2">@Html.DisplayFor((model) => model.Remark)</td>
+                </tr>
+                <tr>
+                    <th>@Html.DisplayNameFor((model) => model.Weather)</th>
+                    <td>@Html.DisplayFor((model) => model.Weather)</td>
+                    <th>@Html.DisplayNameFor((model) => model.DraftFwd)</th>
+                    <td>@Html.DisplayFor((model) => model.DraftFwd)</td>
+                    <th>@Html.DisplayNameFor((model) => model.VesselTrim)</th>
+                    <td>@Html.DisplayFor((model) => model.VesselTrim)</td>
+                </tr>
+                <tr>
+                    <th>@Html.DisplayNameFor((model) => model.SeaCondition)</th>
+                    <td>@Html.DisplayFor((model) => model.SeaCondition)</td>
+                    <th>@Html.DisplayNameFor((model) => model.DraftAft)</th>
+                    <td>@Html.DisplayFor((model) => model.DraftAft)</td>
+                    <th>@Html.DisplayNameFor((model) => model.VesselCurrentList)</th>
+                    <td>@Html.DisplayFor((model) => model.VesselCurrentList)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="table table-condensed table-bordered rob">
+            <thead>
+                <tr>
+                    <th style="width:12.66%" rowSpan="2">BUNKER TANKS</th>
+                    <th style="width:9%" rowSpan="2">BDN Number of fuel in tank</th>
+                    <th style="width:15.66%" rowSpan="2">FUEL TYPE (as per ISO 8217)</th>
+                    <th rowSpan="2">SULPHUR CONTENT (% mm)</th>
+                    <th rowSpan="2">SOUNDING (cm/mm)</th>
+                    <th colSpan="3">ULLAGE CALCULATION (cm/mm)</th>
+                    <th rowSpan="2">TANK TEMP (°C)</th>
+                    <th rowSpan="2">TOTAL OBSERVED VOLUME (T.O.V. (<var>m<sup>3</sup></var>))</th>
+                    <th rowSpan="2">DENSITY AT 15oC (kg/lt)</th>
+                    <th rowSpan="2">VOLUME CORRECTION FACTOR (V.C.F.)</th>
+                    <th rowSpan="2">GROSS STANDARD VOLUME (G.S.V. (<var>m<sup>3</sup></var>))</th>
+                    <th rowSpan="2">WEIGHT CORRECTION FACTOR (W.C.F.)</th>
+                    <th rowSpan="2">WEIGHT (MT)</th>
+                </tr>
+                <tr>
+                    <th>TAPE READING</th>
+                    <th>BOB READING</th>
+                    <th>ULLAGE</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tank in Model.Tanks)
+                {
+                    <tr>
+                        <td>@tank.TankName</td>
+                        <td>@tank.BdnNumber</td>
+                        <td>@(tank.isMdoMgo ? "MDO-MGO (GRADES DMX - DMB)" : tank.isLfo ? "LFO (GRADES RMA - RMD)" : "HFO (GRADES RME - RMK)")</td>
+                        <td>@tank.SulphurContent</td>
+                        <td>@tank.Sounding</td>
+                        <td>@tank.TapeReading</td>
+                        <td>@tank.BobReading</td>
+                        <td>@tank.Ullage</td>
+                        <td>@tank.TankTemp</td>
+                        <td>@tank.Volume</td>
+                        <td>@tank.Density</td>
+                        <td>@tank.Vcf</td>
+                        <td>@tank.Gsv</td>
+                        <td>@tank.Wcf</td>
+                        <td>@tank.Weight</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+
+        <table class="table-wrap">
+            <tbody>
+                <tr>
+                    <td>
+                        <table class="table table-condensed table-bordered">
+                            <tbody>
+                                <tr class="col-text-center">
+                                    <th>TOTALS PER GRADE</th>
+                                    <th>T.O.V. (<var>m<sup>3</sup></var>)</th>
+                                    <th>Weight (MT)</th>
+                                </tr>
+                                <tr>
+                                    <th>HFO (GRADES RME - RMK)</th>
+                                    <td>@Html.DisplayFor((model) => model.HfoPerGradesTov)</td>
+                                    <td>@Html.DisplayFor((model) => model.HfoPerGradesWeight)</td>
+                                </tr>
+                                <tr>
+                                    <th>LFO (GRADES RMA - RMD)</th>
+                                    <td>@Html.DisplayFor((model) => model.LfoPerGradesTov)</td>
+                                    <td>@Html.DisplayFor((model) => model.LfoPerGradesWeight)</td>
+                                </tr>
+                                <tr>
+                                    <th>MDO-MGO (GRADES DMX - DMB)</th>
+                                    <td>@Html.DisplayFor((model) => model.MdoMgoPerGradesTov)</td>
+                                    <td>@Html.DisplayFor((model) => model.MdoMgoPerGradesWeight)</td>
+                                </tr>
+                                <tr>
+                                    <th>NON-STANDARD RESIDUAL FUEL</th>
+                                    <td>@Html.DisplayFor((model) => model.NsResidualPerGradesTov)</td>
+                                    <td>@Html.DisplayFor((model) => model.NsResidualPerGradesWeight)</td>
+                                </tr>
+                                <tr>
+                                    <th>NON-STANDARD DISTILATE FUEL</th>
+                                    <td>@Html.DisplayFor((model) => model.NsDestilatePerGradesTov)</td>
+                                    <td>@Html.DisplayFor((model) => model.NsDestilatePerGradesWeight)</td>
+                                </tr>
+                                <tr>
+                                    <th>TOTAL FUEL QUANTITY ONBOARD</th>
+                                    <td>@Html.DisplayFor((model) => model.TotalFuelPerGradesTov)</td>
+                                    <td>@Html.DisplayFor((model) => model.TotalFuelPerGradesWeight)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                    <td>
+                        <table class="table table-condensed table-bordered">
+                            <tbody>
+                                <tr class="col-text-center">
+                                    <th>TOTALS PER SULPHUR CONTENT</th>
+                                    <th>T.O.V. (<var>m<sup>3</sup></var>)</th>
+                                    <th>Weight (MT)</th>
+                                </tr>
+                                <tr>
+                                    <th>Max 3.5% and higher than 0.5% <br />(pre 2020 global bunker)</th>
+                                    <td>@Html.DisplayFor((model) => model.PerSulphurHighTov)</td>
+                                    <td>@Html.DisplayFor((model) => model.PerSulphurHighWeight)</td>
+                                </tr>
+                                <tr>
+                                    <th>Max 0.5% and higher than 0.1% <br />(post 2020 global bunker)</th>
+                                    <td>@Html.DisplayFor((model) => model.PerSulphurMidTov)</td>
+                                    <td>@Html.DisplayFor((model) => model.PerSulphurMidWeight)</td>
+                                </tr>
+                                <tr>
+                                    <th>Max 0.1% <br />(ECA bunker)</th>
+                                    <td>@Html.DisplayFor((model) => model.PerSulphurLowTov)</td>
+                                    <td>@Html.DisplayFor((model) => model.PerSulphurLowWeight)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                    <td>
+                        <table class="table table-condensed table-bordered">
+                            <thead>
+                                <tr class="col-text-center"><th colspan="4">CONSUMPTIONS</th></tr>
+                                <tr class="col-text-center"><th></th><th>HFO</th><th>LFO</th><th>MGO</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><th>M/E</th><td>@Html.DisplayFor((model) => model.ConsHfoMe)</td><td>@Html.DisplayFor((model) => model.ConsLfoMe)</td><td>@Html.DisplayFor((model) => model.ConsMgoMe)</td></tr>
+                                <tr><th>G/E</th><td>@Html.DisplayFor((model) => model.ConsHfoGe)</td><td>@Html.DisplayFor((model) => model.ConsLfoGe)</td><td>@Html.DisplayFor((model) => model.ConsMgoGe)</td></tr>
+                                <tr><th>Boiler</th><td>@Html.DisplayFor((model) => model.ConsHfoBoiler)</td><td>@Html.DisplayFor((model) => model.ConsLfoBoiler)</td><td>@Html.DisplayFor((model) => model.ConsMgoBoiler)</td></tr>
+                                <tr><th>Incinerator</th><td></td><td></td><td>@Html.DisplayFor((model) => model.ConsMgoInc)</td></tr>
+                                <tr><th>IGG</th><td></td><td></td><td>@Html.DisplayFor((model) => model.ConsMgoIgg)</td></tr>
+                                <tr><th>EM/CY DG</th><td></td><td></td><td>@Html.DisplayFor((model) => model.ConsMgoEmCy)</td></tr>
+                                <tr><th>Cargo Cummins</th><td></td><td></td><td>@Html.DisplayFor((model) => model.ConsMgoCargoCumm)</td></tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        
+        
+        <table style="width: 50%; margin-left: auto" class="table table-condensed table-bordered">
+            <tbody>
+                <tr>
+                    <th>@Html.DisplayNameFor((model) => model.Name)</th>
+                    <td>@Html.DisplayFor((model) => model.Name)</td>
+                    <th rowspan="2" style="vertical-align: top!important">Signature:</th>
+                </tr>
+                <tr>
+                    <th>@Html.DisplayNameFor((model) => model.Rank)</th>
+                    <td>@Html.DisplayFor((model) => model.Rank)</td>
+                </tr>
+            </tbody>
+
+        </table>
+    </div>
+</body>
+</html>

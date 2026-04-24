@@ -1,0 +1,15 @@
+{
+  "folders": [
+    {
+      "path": "Telemachus.Api"
+    },
+    {
+      "path": "Telemachus.Web"
+    }
+  ],
+  "settings": {
+    "csharp.preview.improvedLaunchExperience": true,
+    "csharp.debug.console": "integratedTerminal",
+  },
+
+}

@@ -1,0 +1,103 @@
+{
+  "name": "telemachus-web",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.4.0",
+    "@fortawesome/free-solid-svg-icons": "^6.4.0",
+    "@fortawesome/react-fontawesome": "^0.2.0",
+    "@react-input/mask": "^1.0.21",
+    "axios": "^0.21.1",
+    "bootstrap": "^5.2.3",
+    "classnames": "^2.5.1",
+    "date-fns": "^2.29.3",
+    "date-fns-tz": "^2.0.0",
+    "file-saver": "^2.0.5",
+    "filesize": "^10.1.6",
+    "react": "^17.0.1",
+    "react-bootstrap": "^2.7.4",
+    "react-bootstrap-typeahead": "^6.2.2",
+    "react-country-flag": "^3.1.0",
+    "react-dom": "^17.0.1",
+    "react-hook-form": "^7.43.9",
+    "react-if": "^4.1.5",
+    "react-image-file-resizer": "^0.4.8",
+    "react-is": "^18.2.0",
+    "react-loader-spinner": "^4.0.0",
+    "react-paginate": "^7.1.0",
+    "react-range-slider-input": "^3.0.7",
+    "react-router-dom": "^5.2.0",
+    "react-scroll-to-top": "^3.0.0",
+    "react-select": "^5.2.2",
+    "react-simple-maps": "^3.0.0",
+    "sanitize-filename": "^1.6.3",
+    "styled-components": "^5.2.1",
+    "usehooks-ts": "^3.1.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "^7.19.1",
+    "@fullhuman/postcss-purgecss": "^5.0.0",
+    "@vitejs/plugin-legacy": "^4.0.4",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.14",
+    "browserslist-to-esbuild": "^1.2.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.26.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-react-app": "^7.0.1",
+    "eslint-plugin-flowtype": "^8.0.3",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jsx-a11y": "^6.6.1",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-react": "^7.31.10",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-unused-imports": "^2.0.0",
+    "glob": "^10.2.7",
+    "normalize-path": "^3.0.0",
+    "path": "^0.12.7",
+    "postcss": "^8.4.24",
+    "postcss-discard-comments": "^6.0.0",
+    "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-normalize-charset": "^6.0.0",
+    "prettier": "^2.7.1",
+    "purgecss-webpack-plugin": "^5.0.0",
+    "sass": "^1.64.2",
+    "vite": "^4.3.9",
+    "vite-plugin-eslint": "^1.8.1",
+    "vite-plugin-html-purgecss": "^0.1.1",
+    "vite-plugin-minify": "^1.5.2"
+  },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src",
+    "lint:quiet": "eslint --quiet src",
+    "lint:fix": "eslint --fix src",
+    "deadfile": "deadfile ./src/index.js",
+    "bundleVisualizer": "vite-bundle-visualizer",
+    "postbuild1": "purgecss -c ./purgecss.config.js",
+    "ncu": "ncu -u"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      "defaults",
+      "not IE 11",
+      "chrome 109",
+      "firefox 115"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

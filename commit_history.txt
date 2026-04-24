@@ -1,0 +1,755 @@
+commit 66a6abfe09d5ecd3a49d84453ed1c026ab41416f
+Author: agouliel <agouliel@gmail.com>
+Date:   Fri Apr 24 11:01:15 2026 +0300
+
+    added migrations for two new indexes
+
+diff --git a/Telemachus.Api/Telemachus.Data.Services/Context/Configurations/EventDataModelConfiguration.cs b/Telemachus.Api/Telemachus.Data.Services/Context/Configurations/EventDataModelConfiguration.cs
+index 605eb40..27c819a 100644
+--- a/Telemachus.Api/Telemachus.Data.Services/Context/Configurations/EventDataModelConfiguration.cs
++++ b/Telemachus.Api/Telemachus.Data.Services/Context/Configurations/EventDataModelConfiguration.cs
+@@ -27,6 +27,8 @@ namespace Telemachus.Data.Services.Context.Configurations
+             builder.HasIndex(_ => _.StatusId);
+             builder.HasIndex(_ => _.EventTypeId);
+             builder.HasIndex(_ => _.CurrentVoyageConditionKey);
++            builder.HasIndex(_ => new { _.UserId, _.Timestamp });
++            builder.HasIndex(_ => new { _.UserId, _.CurrentVoyageConditionKey });
+             builder.HasOne(_ => _.Port).WithMany(_ => _.Events).HasForeignKey(_ => _.PortId).OnDelete(DeleteBehavior.SetNull);
+             builder.HasOne(e => e.CargoDetail)
+                 .WithOne(cd => cd.Event)
+diff --git a/Telemachus.Api/Telemachus.Data.Services/Migrations/20260424000000_EventUserIdIndexes.Designer.cs b/Telemachus.Api/Telemachus.Data.Services/Migrations/20260424000000_EventUserIdIndexes.Designer.cs
+new file mode 100644
+
+diff --git a/Telemachus.Api/Telemachus.Data.Services/Migrations/20260424000000_EventUserIdIndexes.cs b/Telemachus.Api/Telemachus.Data.Services/Migrations/20260424000000_EventUserIdIndexes.cs
+new file mode 100644
+index 0000000..d93ef3c
+--- /dev/null
++++ b/Telemachus.Api/Telemachus.Data.Services/Migrations/20260424000000_EventUserIdIndexes.cs
+@@ -0,0 +1,31 @@
++using Microsoft.EntityFrameworkCore.Migrations;
++
++namespace Telemachus.Data.Services.Migrations
++{
++    public partial class EventUserIdIndexes : Migration
++    {
++        protected override void Up(MigrationBuilder migrationBuilder)
++        {
++            migrationBuilder.CreateIndex(
++                name: "IX_events_UserId_Timestamp",
++                table: "events",
++                columns: new[] { "UserId", "Timestamp" });
++
++            migrationBuilder.CreateIndex(
++                name: "IX_events_UserId_CurrentVoyageConditionKey",
++                table: "events",
++                columns: new[] { "UserId", "CurrentVoyageConditionKey" });
++        }
++
++        protected override void Down(MigrationBuilder migrationBuilder)
++        {
++            migrationBuilder.DropIndex(
++                name: "IX_events_UserId_Timestamp",
++                table: "events");
++
++            migrationBuilder.DropIndex(
++                name: "IX_events_UserId_CurrentVoyageConditionKey",
++                table: "events");
++        }
++    }
++}
+diff --git a/Telemachus.Api/Telemachus.Data.Services/Migrations/TelemachusContextModelSnapshot.cs b/Telemachus.Api/Telemachus.Data.Services/Migrations/TelemachusContextModelSnapshot.cs
+index 1b5f101..ee4b204 100644
+--- a/Telemachus.Api/Telemachus.Data.Services/Migrations/TelemachusContextModelSnapshot.cs
++++ b/Telemachus.Api/Telemachus.Data.Services/Migrations/TelemachusContextModelSnapshot.cs
+@@ -844,6 +844,10 @@ namespace Telemachus.Data.Services.Migrations
+ 
+                     b.HasIndex("UserId");
+ 
++                    b.HasIndex("UserId", "CurrentVoyageConditionKey");
++
++                    b.HasIndex("UserId", "Timestamp");
++
+                     b.HasIndex("VoyageId");
+ 
+                     b.ToTable("events");
+
+Comments:
+
+The Events table has no index on UserId, so both queries in GetUserEventsAsync and GetUserEventsCountAsync do a full table scan when filtering WHERE UserId = ?. The Timestamp, StatusId, EventTypeId, and CurrentVoyageConditionKey indexes exist, but SQL Server can't use them efficiently without first narrowing by user.
+
+  The fix is two composite indexes:                                             
+  - (UserId, Timestamp) — covers the main paginated query and count query       
+  - (UserId, CurrentVoyageConditionKey) — covers the second query fetching in-progress events by condition key
+
+---
+
+create and apply the migration. From                          
+  Telemachus.Api/Telemachus.Data.Services/:                                     
+                                                                                
+  dotnet ef migrations add EventUserIdIndexes --startup-project                 
+  ../Telemachus/Telemachus.csproj                                               
+  dotnet ef database update --startup-project ../Telemachus/Telemachus.csproj   
+                                                                                
+  What was wrong: UserId had no index at all. As the events table grows, WHERE  
+  UserId = @userId becomes a full table scan. The Timestamp index existed       
+  separately but SQL Server can't combine single-column indexes efficiently for 
+  this query pattern — it needs the composite (UserId, Timestamp) to do a seek.
+
+  What these indexes do:
+  - IX_events_UserId_Timestamp — lets SQL Server seek directly to a user's
+  events and read them in timestamp order, making both the paginated query and  
+  the count query efficient                                                   
+  - IX_events_UserId_CurrentVoyageConditionKey — speeds up the second half of   
+  GetUserEventsAsync which fetches in-progress (null-timestamp) events by     
+  condition key
+
+---
+
+The dotnet-ef tool can't find the .NET runtime because it's installed in a non-standard location. Setting DOTNET_ROOT fixes it.
+
+The <RuntimeIdentifier>win-x64</RuntimeIdentifier> in the csproj is causing EF tools to build a Windows binary that can't run on macOS. The simplest fix is to temporarily clear it while generating the migration.
+
+The project requires the .NET 3.1 runtime which is EOL and not installed. Restoring the csproj and writing the migration manually instead.
+
+First the migration. Now update the snapshot to add the two composite indexes after the existing   
+  UserId index on the events entity. Now create the designer file. I'll base it on the previous designer file with the class name/migration ID changed and the same index additions.
+
+Now to apply the migration, since `dotnet ef database update` won't work (same runtime problem),  run the SQL directly against the database. Here's the equivalent SQL:
+
+  CREATE INDEX IX_events_UserId_Timestamp                                       
+      ON events (UserId, Timestamp);                                            
+                                                                                
+  CREATE INDEX IX_events_UserId_CurrentVoyageConditionKey                       
+      ON events (UserId, CurrentVoyageConditionKey);        
+                                                                                
+  Once applied, EF Core will record it in __EFMigrationsHistory — but since we're running it manually, we'll also need to insert the migration history row:
+                                                            
+  INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion)
+  VALUES ('20260424000000_EventUserIdIndexes', '3.1.32');
+
+  Summary of what was created:                                                  
+  - 20260424000000_EventUserIdIndexes.cs — migration with CreateIndex/DropIndex calls
+  - 20260424000000_EventUserIdIndexes.Designer.cs — model snapshot at migration time
+  - TelemachusContextModelSnapshot.cs — updated with both composite indexes
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+commit d73758b872f9f5023ba7053d21816f7b79de5533
+Author: agouliel <agouliel@gmail.com>
+Date:   Fri Apr 24 11:00:51 2026 +0300
+
+    passcode fixes
+
+diff --git a/Telemachus.Api/Telemachus/Middlewares/PasscodeAuthenticationMiddleware.cs b/Telemachus.Api/Telemachus/Middlewares/PasscodeAuthenticationMiddleware.cs
+index 8b8ff48..c766c24 100644
+--- a/Telemachus.Api/Telemachus/Middlewares/PasscodeAuthenticationMiddleware.cs
++++ b/Telemachus.Api/Telemachus/Middlewares/PasscodeAuthenticationMiddleware.cs
+@@ -48,7 +48,7 @@ namespace Telemachus.Middlewares
+             {
+                 return true;
+             }
+-            var hasVesselSettings = _configuration.GetSection("VesselDetails").Exists();
++            var hasVesselSettings = !string.IsNullOrEmpty(_configuration["VesselDetails:Prefix"]);
+             var gatewayIp = _configuration["Gateway"];
+             var hasVesselGateway = false;
+             if (!string.IsNullOrEmpty(gatewayIp))
+
+Comments:
+
+Issue 1 (most likely): Inconsistent "in-house" detection                                                                                                                                                           
+  
+  PasscodeAuthenticationMiddleware and AuthenticationService disagree on what constitutes in-house mode:                                                                                                             
+                  
+  - AuthenticationService: isInHouse = string.IsNullOrEmpty(vesselDetails?.Prefix) — checks if Prefix is empty                                                                                                       
+  - PasscodeAuthenticationMiddleware: hasVesselSettings = _configuration.GetSection("VesselDetails").Exists() — only checks if the section exists
+                                                                                                                                                                                                                     
+  If VesselDetails is present in appsettings.json but Prefix is empty/missing, the auth service considers it in-house (so no passcode flow at login), but the middleware considers it a vessel install (so it requires X-Passcode and returns 401).                                                                                                                                                                              
+
+
+Issue 2 (if running outside Development): environment isn't set                                                                                                                                                    
+  
+  If running via Docker or any process without ASPNETCORE_ENVIRONMENT=Development, the isDevelopment bypass in the middleware doesn't fire.                                                                          
+                  
+  The fix is to align the middleware's check with AuthenticationService. This makes the middleware use the same Prefix-based check as AuthenticationService. Previously, if your appsettings.json had a VesselDetails section at all (even with an empty Prefix), the middleware would demand a passcode that was never created during login — a silent mismatch that only shows up as 401 on /api/reports.                                                                                               
+                                                                                                                                                                                                                     
+  Quick summary of the whole flow:                                                                                                                                                                                   
+  - Login hits AuthenticationService -> isInHouse = string.IsNullOrEmpty(prefix) -> if true, no passcode is issued                                                                                                     
+  - Every request to /api/reports hits PasscodeAuthenticationMiddleware -> previously checked .Exists() instead of checking Prefix, so a VesselDetails: {} section in appsettings would silently flip it into vessel mode and block all reports requests with 401                                                                                                                                                                       
+                                                                                                                                                                                                                     
+  After this fix both use the same Prefix check, so they'll agree on mode.
+
+---
+
+.env has VesselDetails__Prefix=GEA (vessel mode, not in-house) and ASPNETCORE_ENVIRONMENT=Production (no dev bypass), so the middleware actively enforces the passcode for /api/reports.
+
+The browser's localStorage almost certainly does not have Telemachus-Passcode key (or it's null). That's why no X-Passcode header is sent.
+
+  To get reports access in vessel mode, log out, then log back in with the "Secure access" toggle enabled and a Full Name filled in. That creates a UserPasscodes row in the DB and stores the UUID in Telemachus-Passcode. Subsequent /api/reports requests will then include the header and pass the middleware.
+
+  If you want to skip the passcode entirely while developing, change ASPNETCORE_ENVIRONMENT=Production to ASPNETCORE_ENVIRONMENT=Development in .env. The middleware has an explicit isDevelopment bypass at the top.
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+commit a6e2d610943adbec1a747b6d6c4dbc79ade1b86b
+Author: agouliel <agouliel@gmail.com>
+Date:   Fri Apr 24 10:59:28 2026 +0300
+
+    use correct JWT env variable
+
+diff --git a/.env.example b/.env.example
+index 345eb42..9598ddb 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,7 +1,7 @@
+ ASPNETCORE_ENVIRONMENT=Production
+ ASPNETCORE_URLS=http://+:3001
+ ConnectionStrings__Telemachus=Server=YOUR_SERVER;Database=TelemachusWeb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=true;
+-JWT_SECRET_KEY=replace-with-a-long-random-secret
++Jwt__SecretKey=replace-with-a-long-random-secret
+ SYNC_PASSCODE=replace-with-sync-passcode
+ VesselDetails__Name=Gea
+ VesselDetails__Prefix=GEA
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+commit a8ecb27f82bc4e0f44e67fbb48aed1cccf858401
+Author: agouliel <agouliel@gmail.com>
+Date:   Fri Apr 24 01:30:32 2026 +0300
+
+    use ASP.NET Core variable naming for db connection
+
+diff --git a/.env.example b/.env.example
+index 4e30049..345eb42 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,6 +1,6 @@
+ ASPNETCORE_ENVIRONMENT=Production
+ ASPNETCORE_URLS=http://+:3001
+-DB_CONNECTION_STRING=Server=YOUR_SERVER;Database=TelemachusWeb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=true;
++ConnectionStrings__Telemachus=Server=YOUR_SERVER;Database=TelemachusWeb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=true;
+ JWT_SECRET_KEY=replace-with-a-long-random-secret
+ SYNC_PASSCODE=replace-with-sync-passcode
+ VesselDetails__Name=Gea
+
+Comments:
+
+With docker run --env-file there's no mapping layer - the variable names in .env must exactly match what ASP.NET Core expects. But .env still had DB_CONNECTION_STRING, which the app doesn't recognize. It was falling back to the placeholder connection string in appsettings.json. Fixed .env.example to use the ASP.NET Core name directly.
+
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+commit 3172cc3e2ccc658b3c576500377d0f8a38e7a3d2
+Author: agouliel <agouliel@gmail.com>
+Date:   Thu Apr 23 19:48:07 2026 +0300
+
+    use docker run instead of compose
+
+diff --git a/.env.example b/.env.example
+index 97c3241..4e30049 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,7 +1,10 @@
++ASPNETCORE_ENVIRONMENT=Production
++ASPNETCORE_URLS=http://+:3001
+ DB_CONNECTION_STRING=Server=YOUR_SERVER;Database=TelemachusWeb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=true;
+ JWT_SECRET_KEY=replace-with-a-long-random-secret
+ SYNC_PASSCODE=replace-with-sync-passcode
+-VESSEL_NAME=Gea
+-VESSEL_PREFIX=GEA
+-VESSEL_OPERATOR=Ionia
+-VESSEL_INITIAL_PASSWORD=replace-with-initial-password
++VesselDetails__Name=Gea
++VesselDetails__Prefix=GEA
++VesselDetails__Operator=Ionia
++VesselDetails__InitialPassword=replace-with-initial-password
++VesselDetails__ListenPort=3001
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 95d7823..b5fc930 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -5,15 +5,5 @@ services:
+     build: .
+     ports:
+       - "3001:3001"
+-    environment:
+-      ASPNETCORE_ENVIRONMENT: Production
+-      ASPNETCORE_URLS: http://+:3001
+-      ConnectionStrings__Telemachus: "${DB_CONNECTION_STRING}"
+-      Jwt__SecretKey: "${JWT_SECRET_KEY}"
+-      SyncCredentials__Passcode: "${SYNC_PASSCODE}"
+-      VesselDetails__Name: "${VESSEL_NAME}"
+-      VesselDetails__Prefix: "${VESSEL_PREFIX}"
+-      VesselDetails__Operator: "${VESSEL_OPERATOR}"
+-      VesselDetails__InitialPassword: "${VESSEL_INITIAL_PASSWORD}"
+-      VesselDetails__ListenPort: "3001"
++    env_file: .env
+     restart: unless-stopped
+
+Comments:
+
+docker build -t telemachus .
+
+docker run -p 3001:3001 --env-file .env telemachus
+
+Also updated the var names to use the direct ASP.NET Core format (VesselDetails__Name etc.) so they work with --env-file without needing the docker-compose interpolation layer.
+Using env_file: .env means docker-compose reads the same file as docker run  --env-file .env, so both commands stay in sync automatically.
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+commit 3a109778464f1713c2aea604b106e7459cb29740
+Author: agouliel <agouliel@gmail.com>
+Date:   Thu Apr 23 17:34:10 2026 +0300
+
+    edited readme and documentation
+
+diff --git a/README.md b/README.md
+index d2c90f6..dfcd227 100644
+--- a/README.md
++++ b/README.md
+@@ -15,3 +15,11 @@ Update the `tank_user_specs` table by setting the `IsActive` field to `0` for th
+ 
+ Select a tank from the `tanks` table and create a new row in the `tank_user_specs` table.
+ The tank name can be edited (rename able).
++
++## Other notes
++See `documentation` folder (`API.md` and `db_notes.md`)
++
++## Sync procedure
++1. Login returns `hasRemoteData: true` + `isInHouse: false` for the user
++2. `useAuth.jsx:92-103` detects this and calls `POST /api/sync`
++3. `SyncController.cs:56-57` calls `SyncMasterValues` / `SyncDataValues`, which makes an outbound HTTP request to the remote server address stored in the user's DB record (`RemoteAddress:RemotePort`)
+diff --git a/documentation/db_notes.md b/documentation/db_notes.md
+
+diff --git a/documentation/db_notes.txt b/documentation/db_notes.txt
+index 1e46aad..ae32d6b 100644
+--- a/documentation/db_notes.txt
++++ b/documentation/db_notes.txt
+@@ -82,7 +82,7 @@ If nothing is specified for user, all tank fields will be shown to the user.
+ 
+ -----------------------------------------------------------------------------
+ 
+-Examples for  report fields:
++Examples for report fields:
+ 
+ 1) If you need to add simple field to Noon report (Not grouped):
+
+-------------------------------------------------------------------------------------------------------------------------------- 
+
+commit 546d6ca752314d640b74f1d23baa7d8fe8f5df49
+Author: agouliel <agouliel@gmail.com>
+Date:   Thu Apr 23 17:07:38 2026 +0300
+
+    added public hash endpoint
+
+diff --git a/Telemachus.Api/Telemachus/Controllers/LoginController.cs b/Telemachus.Api/Telemachus/Controllers/LoginController.cs
+index 3e5f3cf..5d77a18 100644
+--- a/Telemachus.Api/Telemachus/Controllers/LoginController.cs
++++ b/Telemachus.Api/Telemachus/Controllers/LoginController.cs
+@@ -1,5 +1,6 @@
+ using Microsoft.AspNetCore.Authentication.JwtBearer;
+ using Microsoft.AspNetCore.Authorization;
++using Microsoft.AspNetCore.Identity;
+ using Microsoft.AspNetCore.Mvc;
+ using System;
+ using System.Security.Claims;
+@@ -87,5 +88,16 @@ namespace Telemachus.Controllers
+ 
+             return Ok(data);
+         }
++
++        [HttpPost("hash")]
++        public IActionResult HashPassword([FromBody] string password)
++        {
++            if (string.IsNullOrEmpty(password))
++                return BadRequest("Password is required.");
++
++            var hasher = new PasswordHasher<object>();
++            var hash = hasher.HashPassword(null, password);
++            return Ok(hash);
++        }
+     }
+ }
+
+Comments:
+
+Added POST /api/login/hash to LoginController.cs. Usage:
+
+  POST /api/login/hash                                                                                                                                                    
+  Content-Type: application/json
+  "yourpassword"                                                                                                                                                            
+Returns the PBKDF2 hash string (same algorithm used by ASP.NET Identity throughout the project). The endpoint is public (no [Authorize]), and uses PasswordHasher<object> directly - no Dependency Injection changes needed since the generic type parameter isn't used in the hash computation.
+
+Sample curl:
+
+  curl -X POST http://localhost:3001/api/login/hash \
+    -H "Content-Type: application/json" \
+    -d '"yourpassword"'
+Note the double quotes inside single quotes - the JSON body for a bare string must be quoted.
+
+
+Dependency Injection is the pattern .NET uses to supply services to classes automatically rather than constructing them manually.
+
+In this project, services are registered in Telemachus.Dependency/BusinessModule.cs like:
+services.AddTransient<IAuthenticationService, AuthenticationService>();
+
+Then the controller receives them via its constructor:
+
+  public LoginController(IAuthenticationService authenticationService)                                                                                                      
+  {               
+      _authenticationService = authenticationService;
+  }
+The framework wires it all up at startup - you never call new AuthenticationService() yourself.
+
+For the hash endpoint, this was skipped entirely and just did new PasswordHasher<object>() inline, because PasswordHasher is a stateless utility with no dependencies of its own - it needs no configuration and holds no state, so there's nothing to register or inject.
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+commit 72009b7f6c26ff5bd63fa1901727584691db5636
+Author: agouliel <agouliel@gmail.com>
+Date:   Thu Apr 23 16:32:42 2026 +0300
+
+    Fixed RID appsettings browser launch and missing Static folder
+
+diff --git a/.gitignore b/.gitignore
+index b4ff83e..c9a507e 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -12,10 +12,8 @@ output.txt
+ DebugVessel.cmd
+ debug/*
+ 
+-
+ Telemachus.Api/Telemachus/commands.json
+ Telemachus.Api/Telemachus/Logs/**/*
+ 
+-
+ *.TMP
+-
++.env
+diff --git a/Dockerfile b/Dockerfile
+index a43276f..9426a55 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -8,6 +8,8 @@ RUN npm run build
+ 
+ # ── Stage 2: Build .NET API ───────────────────────────────────────────────
+ FROM mcr.microsoft.com/dotnet/sdk:3.1 AS api-builder
++# TARGETARCH is set automatically by Docker: "amd64" on x86_64, "arm64" on Apple Silicon.
++ARG TARGETARCH
+ WORKDIR /src
+ 
+ # Copy full source (node_modules, bin, obj filtered by .dockerignore)
+@@ -18,12 +20,12 @@ COPY . .
+ # which resolves to /src/Telemachus.Web/ inside this stage.
+ COPY --from=spa-builder /spa/dist ./Telemachus.Web/dist
+ 
+-# Override win-x64 RID for Linux container; skip npm steps because dist is
+-# already present (DotNetPublishArgs=--no-build gates the Exec tasks in
+-# PublishRunWebpack while still including the DistFiles ItemGroup).
+-RUN dotnet publish Telemachus.Api/Telemachus/Telemachus.csproj \
++# Map Docker's TARGETARCH ("amd64"/"arm64") to .NET RIDs ("linux-x64"/"linux-arm64").
++# Override win-x64 RID from the .csproj; skip npm steps because dist is already present.
++RUN DOTNET_RID=$([ "$TARGETARCH" = "amd64" ] && echo "linux-x64" || echo "linux-arm64") && \
++    dotnet publish Telemachus.Api/Telemachus/Telemachus.csproj \
+       -c Release \
+-      --runtime linux-x64 \
++      --runtime $DOTNET_RID \
+       --self-contained false \
+       -p:DotNetPublishArgs=--no-build \
+       -o /publish
+@@ -32,5 +34,9 @@ RUN dotnet publish Telemachus.Api/Telemachus/Telemachus.csproj \
+ FROM mcr.microsoft.com/dotnet/aspnet:3.1
+ WORKDIR /app
+ COPY --from=api-builder /publish .
++# appsettings.json is required (optional: false). Placeholder values here are
++# overridden at runtime by the environment variables in docker-compose.yml.
++COPY appsettings.json.example appsettings.json
++RUN mkdir -p /app/Static
+ EXPOSE 3001
+ ENTRYPOINT ["dotnet", "Telemachus.dll"]
+diff --git a/Telemachus.Api/Telemachus/Program.cs b/Telemachus.Api/Telemachus/Program.cs
+index ed65f37..e148697 100644
+--- a/Telemachus.Api/Telemachus/Program.cs
++++ b/Telemachus.Api/Telemachus/Program.cs
+@@ -2,6 +2,7 @@ using System;
+ using System.Diagnostics;
+ using System.Globalization;
+ using System.IO;
++using System.Runtime.InteropServices;
+ using System.Threading;
+ using System.Threading.Tasks;
+ 
+@@ -112,11 +113,12 @@ _______    _                           _
+         {
+             try
+             {
+-                Process.Start(new ProcessStartInfo
+-                {
+-                    FileName = url,
+-                    UseShellExecute = true
+-                });
++                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
++                    Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
++                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
++                    Process.Start("open", url);
++                else
++                    Process.Start("xdg-open", url);
+             }
+             catch (Exception ex)
+             {
+
+Comments:
+
+1. appsettings.json is required, because Program.cs loads it with optional: false, so the app will crash on startup if it's missing. The fix is to copy appsettings.json.example into the image as appsettings.json. Since AddEnvironmentVariables() is called after, all the docker-compose env vars (.env file) will override whatever placeholder values are in the file.
+2. The app was compiled for linux-x64 but Docker on Apple Silicon runs linux-arm64 containers. The RID needs to match the container architecture. The cleanest fix is to map Docker's automatic TARGETARCH build arg to the correct .NET RID.
+3. Check the OS and use the right browser launcher. In a Docker container xdg-open won't be available, so it'll still log the error - but that's harmless since there's no display to open a browser on anyway. When running natively on macOS it'll use open, on Linux xdg-open, on Windows the original UseShellExecute path.
+4. The Static folder is referenced in Startup.cs via PhysicalFileProvider, which throws if the directory doesn't exist. The folder is likely empty (or gitignored), so it never makes it into the image. Easiest fix is to create it in the Dockerfile.
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+commit bfe65a174f4bd799f7447d0c92775f0cc32f448f
+Author: agouliel <agouliel@gmail.com>
+Date:   Mon Apr 20 12:29:03 2026 +0300
+
+    use existing database
+
+diff --git a/.env.example b/.env.example
+index 6ab9f06..97c3241 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,4 +1,4 @@
+-SA_PASSWORD=YourStrong@Passw0rd
++DB_CONNECTION_STRING=Server=YOUR_SERVER;Database=TelemachusWeb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=true;
+ JWT_SECRET_KEY=replace-with-a-long-random-secret
+ SYNC_PASSCODE=replace-with-sync-passcode
+ VESSEL_NAME=Gea
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 08ab38b..95d7823 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -8,7 +8,7 @@ services:
+     environment:
+       ASPNETCORE_ENVIRONMENT: Production
+       ASPNETCORE_URLS: http://+:3001
+-      ConnectionStrings__Telemachus: "Server=db;Database=TelemachusWeb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=true;"
++      ConnectionStrings__Telemachus: "${DB_CONNECTION_STRING}"
+       Jwt__SecretKey: "${JWT_SECRET_KEY}"
+       SyncCredentials__Passcode: "${SYNC_PASSCODE}"
+       VesselDetails__Name: "${VESSEL_NAME}"
+@@ -16,28 +16,4 @@ services:
+       VesselDetails__Operator: "${VESSEL_OPERATOR}"
+       VesselDetails__InitialPassword: "${VESSEL_INITIAL_PASSWORD}"
+       VesselDetails__ListenPort: "3001"
+-    depends_on:
+-      db:
+-        condition: service_healthy
+     restart: unless-stopped
+-
+-  db:
+-    image: mcr.microsoft.com/mssql/server:2022-latest
+-    environment:
+-      ACCEPT_EULA: "Y"
+-      SA_PASSWORD: "${SA_PASSWORD}"
+-      MSSQL_PID: Express
+-    ports:
+-      - "1433:1433"
+-    volumes:
+-      - sqldata:/var/opt/mssql
+-    healthcheck:
+-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$SA_PASSWORD\" -Q 'SELECT 1' -No -C || exit 1"]
+-      interval: 15s
+-      timeout: 5s
+-      retries: 10
+-      start_period: 30s
+-    restart: unless-stopped
+-
+-volumes:
+-  sqldata:
+
+Comments:
+
+Set DB_CONNECTION_STRING in .env to point at the existing server - just replace YOUR_SERVER and YOUR_PASSWORD.
+
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+commit 990ea67836d6e3d3c50f75085960024ec0071c50
+Author: agouliel <agouliel@gmail.com>
+Date:   Mon Apr 20 12:20:44 2026 +0300
+
+    dockerize
+
+diff --git a/.dockerignore b/.dockerignore
+new file mode 100644
+index 0000000..e5e5dbe
+--- /dev/null
++++ b/.dockerignore
+@@ -0,0 +1,15 @@
++**/node_modules
++**/dist
++**/bin
++**/obj
++.git
++.gitignore
++.vs
++**/*.user
++.idea
++**/.vscode
++**/logs
++**/*.log
++**/.env
++**/appsettings.Development.json
++**/appsettings.local.json
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..6ab9f06
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,7 @@
++SA_PASSWORD=YourStrong@Passw0rd
++JWT_SECRET_KEY=replace-with-a-long-random-secret
++SYNC_PASSCODE=replace-with-sync-passcode
++VESSEL_NAME=Gea
++VESSEL_PREFIX=GEA
++VESSEL_OPERATOR=Ionia
++VESSEL_INITIAL_PASSWORD=replace-with-initial-password
+diff --git a/Dockerfile b/Dockerfile
+new file mode 100644
+index 0000000..a43276f
+--- /dev/null
++++ b/Dockerfile
+@@ -0,0 +1,36 @@
++# ── Stage 1: Build React SPA ─────────────────────────────────────────────
++FROM node:18-alpine AS spa-builder
++WORKDIR /spa
++COPY Telemachus.Web/package*.json ./
++RUN npm ci --silent
++COPY Telemachus.Web/ ./
++RUN npm run build
++
++# ── Stage 2: Build .NET API ───────────────────────────────────────────────
++FROM mcr.microsoft.com/dotnet/sdk:3.1 AS api-builder
++WORKDIR /src
++
++# Copy full source (node_modules, bin, obj filtered by .dockerignore)
++COPY . .
++
++# Overlay pre-built SPA where PublishRunWebpack expects it.
++# SpaRoot in .csproj = ..\..\Telemachus.Web\ relative to Telemachus.Api/Telemachus/
++# which resolves to /src/Telemachus.Web/ inside this stage.
++COPY --from=spa-builder /spa/dist ./Telemachus.Web/dist
++
++# Override win-x64 RID for Linux container; skip npm steps because dist is
++# already present (DotNetPublishArgs=--no-build gates the Exec tasks in
++# PublishRunWebpack while still including the DistFiles ItemGroup).
++RUN dotnet publish Telemachus.Api/Telemachus/Telemachus.csproj \
++      -c Release \
++      --runtime linux-x64 \
++      --self-contained false \
++      -p:DotNetPublishArgs=--no-build \
++      -o /publish
++
++# ── Stage 3: Runtime ──────────────────────────────────────────────────────
++FROM mcr.microsoft.com/dotnet/aspnet:3.1
++WORKDIR /app
++COPY --from=api-builder /publish .
++EXPOSE 3001
++ENTRYPOINT ["dotnet", "Telemachus.dll"]
+diff --git a/docker-compose.yml b/docker-compose.yml
+new file mode 100644
+index 0000000..08ab38b
+--- /dev/null
++++ b/docker-compose.yml
+@@ -0,0 +1,43 @@
++version: '3.9'
++
++services:
++  app:
++    build: .
++    ports:
++      - "3001:3001"
++    environment:
++      ASPNETCORE_ENVIRONMENT: Production
++      ASPNETCORE_URLS: http://+:3001
++      ConnectionStrings__Telemachus: "Server=db;Database=TelemachusWeb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=true;"
++      Jwt__SecretKey: "${JWT_SECRET_KEY}"
++      SyncCredentials__Passcode: "${SYNC_PASSCODE}"
++      VesselDetails__Name: "${VESSEL_NAME}"
++      VesselDetails__Prefix: "${VESSEL_PREFIX}"
++      VesselDetails__Operator: "${VESSEL_OPERATOR}"
++      VesselDetails__InitialPassword: "${VESSEL_INITIAL_PASSWORD}"
++      VesselDetails__ListenPort: "3001"
++    depends_on:
++      db:
++        condition: service_healthy
++    restart: unless-stopped
++
++  db:
++    image: mcr.microsoft.com/mssql/server:2022-latest
++    environment:
++      ACCEPT_EULA: "Y"
++      SA_PASSWORD: "${SA_PASSWORD}"
++      MSSQL_PID: Express
++    ports:
++      - "1433:1433"
++    volumes:
++      - sqldata:/var/opt/mssql
++    healthcheck:
++      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$SA_PASSWORD\" -Q 'SELECT 1' -No -C || exit 1"]
++      interval: 15s
++      timeout: 5s
++      retries: 10
++      start_period: 30s
++    restart: unless-stopped
++
++volumes:
++  sqldata:
+
+Comments:
+
+Created a Dockerfile (3-stage: Node SPA build -> .NET publish -> runtime), a docker-compose with SQL Server, a .dockerignore, and an .env.example.
+
+Dockerfile │ 3-stage build: Node 18 (SPA) -> .NET SDK 3.1 (publish) -> ASP.NET 3.1 (runtime)
+docker-compose.yml │ App + SQL Server 2022 with volume and healthcheck
+.dockerignore │ Excludes node_modules, bin, obj, dist, .git
+.env.example │ Template — copy to .env and fill in before running
+
+The SpaRoot in the .csproj points to ../../Telemachus.Web/, so Stage 1 builds the React app and Stage 2 copies the dist into that exact path before dotnet publish. The PublishRunWebpack target then includes it under ClientApp/dist/ in the publish output without running npm again (-p:DotNetPublishArgs=--no-build).
+--runtime linux-x64 overrides the hardcoded win-x64 Runtime Identifier in Telemachus.csproj.
+VesselDetails__ListenPort=3001 is required - without it the Configure() method skips EF migrations.
+To start:
+```
+cp .env.example .env   # fill in secrets
+docker compose up --build
+```
+
+For this use case it's not worth having separate stages for npm install and npm build. Separate stages make sense when you want to reuse or export an intermediate image, but here the npm install and build are both just feeding into the dotnet publish stage. Splitting them would add a FROM and an extra COPY --from with no real benefit - the layer caching works the same either way.
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+commit e4036e23069677211b0be775121244560fab8662
+Author: agouliel <agouliel@gmail.com>
+Date:   Mon Apr 20 12:00:20 2026 +0300
+
+    deleted node_modules
+
+diff --git a/node_modules/.package-lock.json b/node_modules/.package-lock.json
+deleted file mode 100644
+index 46ea283..0000000
+--- a/node_modules/.package-lock.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "name": "TelemachusWeb",
+-  "lockfileVersion": 3,
+-  "requires": true,
+-  "packages": {}
+-}
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+commit 152246601d0ad9956e5107f26f50f9993d0fd231
+Author: agouliel <agouliel@gmail.com>
+Date:   Mon Apr 20 11:59:27 2026 +0300
+
+    first commit

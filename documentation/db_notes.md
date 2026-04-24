@@ -1,0 +1,172 @@
+`AspNetUsers`: Contains all application users. (Vessel users and admins)
+
+`AspNetRoles`: Contains list of application user roles (Admin, Basic). Basic user means vessel user.
+
+`AspNetUserRoles`: Contains link between user and role. If you want to assign user to specific role, this table should be populated.
+
+## EVENTS
+`event_types (Name, PairedEventTypeId, NextConditionId, Transit, AvailAfterEventTypeId, EventType)`: Contains list of all existing event types in application. Eg. Noon, Commence Mooring and so on.
+
+`EventType` column:
+- OneTimeEvent = 1 (meaning only one event for condition. You can create it only once)
+- Recurring = 2 (repeatable as many times as user wants)
+- RecurringAfterSecondEvent = 3 (has a pair and that's repeatable only when the first pair is completed)
+- OneEventFinish = 4 (has a pair and you can create only one pair and as many as you want parent events)
+- PairedEvent = 5 (child)
+- Custom = 6 (has custom logic in the app)
+
+`event_conditions (id, name)`: Contains list of all existing conditions (1, At sea).
+
+`event_types_conditions (ConditionId, EventTypeId)`: Contains list of all event types per specific conditions. Eg. Berthed has 5 event types.
+
+`event_statuses (id, name)`: Contains list of possible event statuses (1, In progress).
+
+`ports`: Contains list of all existing ports.
+
+`ports_events`: Contains link between selected ports for event and event.
+
+`voyages (StartDate,[EndDate],[UserId],[IsFinished],[CurrentConditionId], CurrentVoyageConditionKey)`: Contains list of user voyages.   
+`CurrentVoyageConditionKey` --> GUID generated when condition is changed in current voyage (combination of voyage id and condition id)
+
+
+`event_attachments (Path, EventId)`
+
+`events (Id,[Timestamp],[UserId],[Terminal],[StatusId],[EventTypeId],[ConditionId],[VoyageId], [CurrentVoyageConditionKey],[Comment],[CargoStatus],[ConditionStartedDate], BallastQuantity)`
+
+## CARGO
+`cargoes (id, selection)`: Contains list of possible cargoes.
+
+`cargoes_events (CargoId, EventId)`: Contains link between event and its cargoes.
+
+`event_cargo_details (ParcelSize, ParcelQuantity, EventId)`: Contains details for event’s cargo.
+
+
+## REPORTS
+`report_fields`: Contains list of all possible report fields.
+- `Name` – name of field that will be displayed in table.
+- `Group` – there are 4 groups: 0, 1, 2, 3
+  ROB HFO ACTUAL = 0
+  ROB HFO POOL = 1
+  ROB MGO ACTUAL = 2
+  ROB MGO POOL = 3
+Fields that have one of those groups will be displayed in popup. (Tanks)
+- `SubGroup` – if you want to add additional fields to tank, you should specify subgroup. Make sure subgroup is not duplicated with other tanks.
+- `InSubgroupMain` – should be set to 1 if it’s main tank field (that field will be counted in table)
+
+`event_type_report_fields`: Contains event type and report fields link (fields for each event).
+
+`reports`: Contains Created reports (associates events with reports).
+
+`report_field_values`: Contains report field values for created report (actual data).
+
+`user_tank_field`: Contains allowed tank fields allowed for specific user. If nothing is specified for user, all tank fields will be shown to the user.
+
+-----------------------------------------------------------------------------
+
+## Examples for report fields:
+
+1) If you need to add simple field to Noon report (Not grouped):
+
+- Create record in report_fields
+Eg. 
+Id = 1
+Name = testField
+Group = null
+IsSubgroupMain = null
+SubGroup = null
+
+- Create record in event_type_report_fields (EventTypeId = 1(should be pulled from event_types table), 1 (pulled from report_fields))
+
+2) If you need to add main grouped field to Noon report (Grouped):
+For example let’s add tank for ROB HFO ACTUAL = 0
+
+- Create record in report_fields
+Eg.
+Id = 1
+Name = Tank #1
+Group = 0
+IsSubgroupMain = null
+SubGroup = null
+
+- Create record in event_type_report_fields (EventTypeId = 1(should be pulled from event_types table), 1 (pulled from report_fields))
+Tank #1 will be added to ROB HFO ACTUAL, if you need to add tank #1 to ROB HFO POOL or other groups you should do it for each group that described above.
+
+
+3) If you need to add tank with sub fields:
+For example let’s add tank for ROB HFO ACTUAL with sub fields
+
+- Create record in report_fields
+Eg.
+Id = 1
+Name = Tank #1
+Group = 0
+IsSubgroupMain = 1
+SubGroup = 0 (any value you want)
+
+- Create record in event_type_report_fields (EventTypeId = 1(should be pulled from event_types table), 1 (pulled from report_fields))
+
+- Create record in report_fields
+Eg.
+Id = 2
+Name = Tank #1 Data#1
+Group = null
+IsSubgroupMain = 0
+SubGroup = 0 (any value you want the same as main field)
+
+- Create record in event_type_report_fields (EventTypeId = 1(should be pulled from event_types table), 2 (pulled from report_fields))
+
+4) If you want to enable specific tanks for user:
+For example we have records
+	Id = 1, Name = Tank #1, Group = 0, IsSubGroupMain = 1, SubGroup = 0 (and additional fields for tank)
+	Id = 2, Name = Tank #2, Group = 0, , IsSubGroupMain = 1, SubGroup = 1 ( and additional fields for that tank)
+If you want to enable only tank #1 for group = 0
+Create record in user_tank_field 
+Id=1, UserId = specify user id you want, TankFieldId = 1
+If you want to enable all tanks again, just delete that record.
+
+NOTES:
+GROUP: 1st column (weight) for each tank
+SUBGROUP: Rows (tanks) + other columns
+
+-----------------------------------------------------------------------------
+
+## Examples for events:
+
+### Show all pairs:
+```
+select e1.name, e2.Name
+from event_types e1, event_types e2
+where e1.PairedEventTypeId = e2.Id
+```
+### Show all prerequisites:
+```
+select e1.id, e1.name, e2.Name
+from event_types e1, event_types e2
+where e1.id = e2.AvailableAfterEventTypeId
+order by 1
+```
+### Show all conditions and their events:
+```
+select e.Name, c.Name
+from event_types_conditions ec, event_types e, event_conditions c
+where ec.EventTypeId = e.Id
+and ec.ConditionId = c.id
+order by 1,2
+```
+### Insert new event:
+```
+insert into event_types(name, PairedEventTypeId, NextConditionId, Transit, AvailableAfterEventTypeId, EventType)
+values ('Cargo Analysis', null, null, 0, null, 2) -- like noon
+
+insert into event_types_conditions(ConditionId, EventTypeId)
+select ConditionId, 105 from event_types_conditions where EventTypeId = 1 -- noon
+```
+-----------------------------------------------------------------------------
+
+Users:
+```
+SELECT UserName, r.Name
+FROM AspNetUsers u, AspNetRoles r, AspNetUserRoles ur
+where u.id = ur.UserId
+and r.Id = ur.RoleId
+```

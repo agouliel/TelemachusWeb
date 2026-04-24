@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <title>Telemachus</title>
+        <style>
+            .loading::before {
+                content: "[          ]";
+                font-family: monospace;
+                animation: animate 1s steps(10) infinite;
+            }
+            .loading {
+                font-size: 1rem;
+                font-weight: bold;
+                text-align:center;
+                white-space: pre;
+            }
+            @keyframes animate {
+                0% {
+                    content: "[          ]";
+                }
+                10% {
+                    content: "[=         ]";
+                }
+                20% {
+                    content: "[==        ]";
+                }
+                30% {
+                    content: "[===       ]";
+                }
+                40% {
+                    content: "[====      ]";
+                }
+                50% {
+                    content: "[=====     ]";
+                }
+                60% {
+                    content: "[======    ]";
+                }
+                70% {
+                    content: "[=======   ]";
+                }
+                80% {
+                    content: "[========  ]";
+                }
+                90% {
+                    content: "[========= ]";
+                }
+                100% {
+                    content: "[==========]";
+                }
+            }
+            #pre-loader {
+                display: none;
+            }
+            .wrapper {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+            }
+            .centered-div {
+                overflow:hidden;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .mono {
+                font-family: monospace;
+                white-space: wrap;
+                text-align: center;
+                font-size: 12px;
+            }
+            .pre {
+                font-weight: bold;
+                font-family: monospace;
+            }
+            .no-spaces {
+                margin: 0;
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <noscript>
+            <p>You need to enable JavaScript to run this app.</p>
+        </noscript>
+        <div id="root"><div id="pre-loader" class="wrapper">
+                <div class="centered-div"><pre class="pre">
+_______   _                           _
+|__   __| | |                         | |
+    | | ___| | ___ _ __ ___   __ _  ___| |__  _   _ ___
+    | |/ _ \ |/ _ \ '_ ` _ \ / _` |/ __| '_ \| | | / __|
+    | |  __/ |  __/ | | | | | (_| | (__| | | | |_| \__ \
+    |_|\___|_|\___|_| |_| |_|\__,_|\___|_| |_|\__,_|___/
+                </pre></div>
+                <div class="centered-div mono">
+                    <div class="no-spaces">
+                        <br/><div class="loading" aria-label="Loading"></div>
+                        <br/><br/><div class="no-spaces">The minimum <strong>Chrome</strong> version of the supported browser is <strong>109</strong><br/><a title="Download Chrome v109 64bit for Windows 7" target="_blank" href="/download/109.0.5414.120_chrome_installer.exe">[Download here (Windows 7 64bit)]</a></div>
+                        <br/><div> The minimum <strong>Firefox</strong> version of the supported browser is <strong>115</strong><br/><br/>Current version:<br/><i id="agent">Detecting...</i></div>
+                    </div>
+                </div>
+            </div></div>
+        <script>
+            setTimeout(() => {
+                const elem = document.getElementById("pre-loader");
+                if (elem) {
+                    const agent = document.getElementById("agent");
+                    agent.innerText = window.navigator.userAgent ?? "unknown";
+                    elem.style.display = "initial";
+                }
+            }, 2000);
+
+            let abortController; // Define a variable to hold the AbortController instance
+
+            window.onerror = function (message, source, lineno, colno, error) {
+                return;
+                if (abortController) {
+                    abortController.abort();
+                }
+                abortController = new AbortController();
+
+                const url = new URL(window.location.href);
+                url.pathname = "/api/admin/error";
+                const { signal } = abortController;
+
+                try {
+                    fetch(url.toString(), {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            message: error.message,
+                            name: error.name,
+                            stack: error.stack
+                        }),
+                        signal
+                    })
+                } catch {
+                    return;
+                }
+            };
+        </script>
+        <script type="module" src="/src/index.jsx"></script>
+    </body>
+</html>

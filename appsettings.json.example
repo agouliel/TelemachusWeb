@@ -1,0 +1,38 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "EventLog": {
+    "LogLevel": {
+      "Default": "Error",
+      "Microsoft.Hosting.Lifetime": "Error"
+    }
+  },
+  "AllowedHosts": "*",
+  "Jwt": {
+    "SecretKey": "sS9rtNJfqAdlcacZi32wXsaARucaecbOue36pP0yqyWWdc4z_rVvFgHw8-Y9zS2EcCt3rLhOLSBBzSF5e1v1vl6zQQnQ3tOMHT1_GgHAYnWFp-IYem5C6tXw7qkOZW_FZZ4Tq24BiowG5qXTIRzbWXwLFGTDUU8Y3MZPWnk4zmToHkJnR3dXYFFPeA-Lsg6UCWvUPH17XmfB0dNejCQTonUvXYkzgfn6XcJo-55RwrEqwa7SbAy-UB1S8uJjvHdU0edY3sBVK_G21_bKklvwz23IuvDA9wOtnKEBU6D3pFDa06991KdQheLULms31e_eAHp-V9EVAAZmdahAHZH3LQ"
+  },
+  "RemoteIp": "192.168.0.200",
+  "ConnectionStrings": {
+    "Telemachus": "Server=SERVER_ADDRESS;Database=TelemachusWeb;User Id=sa;Password=PASSWORD",
+  },
+  "SyncCredentials": {
+    "Passcode": "PASSCODE"
+  },
+  "VesselDetails": {
+    "Name": "Gea",
+    "Prefix": "GEA",
+    "Operator": "Ionia",
+    "InitialPassword": "INITIAL_PASSWORD",
+    "AvailablePasscodeSlots": 2,
+    "PitchPropeller": 21,
+    "MainEngineMaxPower": 1000,
+    "RemoteAddress": "85.72.41.81",
+    "RemotePort": 3000,
+    "ListenPort": 5555
+  }
+}

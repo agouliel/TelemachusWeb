@@ -1,0 +1,203 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "build",
+        "${workspaceFolder}/Telemachus/Telemachus.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "publish",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "publish",
+        "${workspaceFolder}/Telemachus/Telemachus.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "watch",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "watch",
+        "run",
+        "--project",
+        "${workspaceFolder}/Telemachus/Telemachus.csproj"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Add EF Core Migration (Telemachus)",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "ef",
+        "migrations",
+        "add",
+        "${input:migrationName}",
+        "--project",
+        "Telemachus.Data.Services",
+        "-s",
+        "Telemachus",
+        "-c",
+        "TelemachusContext"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Remove EF Core Migration (Telemachus)",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "ef",
+        "migrations",
+        "remove",
+        "${input:migrationName}",
+        "--project",
+        "Telemachus.Data.Services",
+        "-s",
+        "Telemachus",
+        "-c",
+        "TelemachusContext"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Update EF Core Database (Telemachus)",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "ef",
+        "database",
+        "update",
+        "--project",
+        "Telemachus.Data.Services",
+        "-s",
+        "Telemachus",
+        "-c",
+        "TelemachusContext"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Add EF Core Migration (Operations)",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "ef",
+        "migrations",
+        "add",
+        "${input:migrationName}",
+        "--project",
+        "Operations.Data",
+        "-s",
+        "Telemachus",
+        "-c",
+        "OperationsDbContext"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Remove EF Core Migration (Operations)",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "ef",
+        "migrations",
+        "remove",
+        "${input:migrationName}",
+        "--project",
+        "Operations.Data",
+        "-s",
+        "Telemachus",
+        "-c",
+        "OperationsDbContext"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Update EF Core Database (Operations)",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "ef",
+        "database",
+        "update",
+        "--project",
+        "Operations.Data",
+        "-s",
+        "Telemachus",
+        "-c",
+        "OperationsDbContext"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "migrationName",
+      "type": "promptString",
+      "description": "Enter the migration name",
+      "default": ""
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+<html>
+
+<style>
+.thumbnail {
+    height: 300px;
+    width: auto;
+    border: 5px solid #555;
+}
+</style>
+
+<head>
+</head>
+
+<body>
+<strong>TELEMACHUS STATEMENT OF FACTS MANUAL</strong>
+<br><br>
+<strong>Main screen - List of submitted facts</strong>
+<br><br>
+<img class="thumbnail" src="images/image1.jpg">
+<br><br><br>
+1. The user sees a list of all submitted facts, sorted by time and grouped by their condition.<br>
+2. For each <strong>fact</strong>, its timestamp is also shown along with other information ("Port", "Cargo", "Comments", "Number of Attachments", "Approval Status", "Report" column, "Exclude" checkbox).<br>
+3. For each <strong>condition</strong>, two timestamps are shown ("Start date" and "End date") which are determined by the first and last fact inside this condition.<br>
+4. The facts can be either "Completed" or "In progress" (the latter is shown with red highlight). This does not have to do with approval status. It just means that the fact's details have not been fully completed.<br>
+5. Conditions can be either "Completed" or "In progress" too, and this depends on if all contained facts have been completed. In this case, a number is shown to indicate how many facts are pending completion.<br>
+6. Various search filters are available.<br>
+7. From this screen, the user is able to export the Statement of Facts, either as a txt file or a pdf file. In both cases, facts that have the "Exclude" checkbox checked are not included.
+
+<br><br><br>
+<strong>Create new fact</strong>
+<br><br>
+<img class="thumbnail" src="images/image2.jpg">
+<br><br><br>
+
+1. The user can create a new fact by clicking the "Create" button with the big "Plus" sign, on the main screen. (Note: Users create only facts. Condition groupings are created automatically by the system.)<br>
+2. Creation takes place on a separate screen, which is a pop-up window. This screen contains the timestamp and a <strong>drop-down list</strong> with all the applicable facts for this specific condition. See the appendix for the diagrams that show all acceptable fact progressions.<br>
+3. The new fact is placed last on the list (latest). This means that it will be created inside the current condition, or as the first fact of a newly opened (by the system) condition. Its timestamp is initially empty and must be filled in by the user. The timestamp is the only required field during the fact's creation.<br>
+4. When creating certain facts, the system automatically creates a paired fact. For example, when creating the "Commence Mooring" fact, the system automatically creates the "Complete Mooring" fact. Both facts will have empty timestamps. The user is only required to fill in the first timestamp at this time. If the second fact is a condition-closing one, this closing will happen only after the second fact's timestamp has been filled in.
+
+<br><br><br>
+<strong>Edit existing fact</strong>
+<br><br>
+<img class="thumbnail" src="images/image3.jpg">
+<br><br><br>
+
+1. After creating facts and completing their timestamp, users can edit them. This can happen in two ways: either by right-clicking the fact and choosing "Edit event" from the pop-up menu, or by first clicking the fact and then clicking the "Edit" (pencil) button of the fact.<br>
+2. Editing happens on a separate screen, which is a pop-up window.<br>
+3. The following fact properties can be edited:<br>
+&nbsp;&nbsp; a. Timestamp<br>
+&nbsp;&nbsp; b. Port (drop-down list)<br>
+&nbsp;&nbsp; c. Cargo<br>
+&nbsp;&nbsp; d. Comments (free text)<br>
+&nbsp;&nbsp; e. Terminal<br>
+&nbsp;&nbsp; f. Cargo status<br>
+&nbsp;&nbsp; g. Add/remove attachments
+
+<br><br><br>
+<strong>Reports</strong>
+<br><br>
+
+The user can add reports to a fact by clicking on the fact to select it, and then clicking the "Edit" button:
+
+<br><br>
+<img class="thumbnail" src="images/reports_image1.jpg">
+<br><br><br>
+
+The report screen shows the current report record, plus all historical data in spreadsheet format. It looks like the below:
+
+<br><br>
+<img class="thumbnail" src="images/reports_image2.jpg">
+<br><br><br>
+
+The values in the green cells are "composite" numbers, meaning that they are a result of detail records. To see those records, click on a green cell and you are redirected to the "Tank Analysis" screen:
+
+<br><br>
+<img class="thumbnail" src="images/reports_image3.jpg">
+<br><br><br>
+
+<br><br><br>
+<strong>Appendix - Fact diagrams</strong>
+<br><br>
+<img class="thumbnail" src="images/image4.jpg">

@@ -1,0 +1,93 @@
+﻿@model List<Telemachus.Data.Models.Reports.WaterConsumptionViewModel>
+@{
+    Layout = null;
+    var vessels = Model.Where(c => (c.AmountConsumed > 0 || c.AmountLoaded > 0) && c.VesselPrefix != "DEV").OrderBy(c => c.VesselName).Select(c => c.VesselName.ToUpper()).Distinct();
+    var annualAmounts = Model
+    .GroupBy(w => w.Year)
+    .OrderByDescending(g => g.Key)
+    .Select(g => new
+    {
+        Year = g.Key,
+        Vessels = g.Where(v => v.AmountConsumed > 0 || v.AmountLoaded > 0).OrderBy(v => v.VesselName).ToList()
+    });
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>@TempData["Title"]</title>
+    <style>
+
+        * {
+            font-family: 'Calibri', 'Arial', sans-serif !important;
+            font-size: 12px;
+        }
+
+        table, tr, td, th, tbody, thead, tfoot {
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            table-layout: fixed;
+        }
+
+        tr {
+            page-break-inside: avoid;
+        }
+
+        td, th {
+            text-align: center;
+            border: 1px solid #ddd;
+            padding: 1px 2px;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1>Water Consumption (MT)</h1>
+        <p>A = CONSUMED</p>
+        <p>B = LOADED</p>
+        <p>C = LOADED (BERTHED/AT ANCHOR)</p>
+        <br>
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2" colspan="3"></th>
+                    @foreach(var vessel in vessels) {
+                        <th colspan="3">@vessel</th>
+                    }
+                </tr>
+                <tr>
+                    @foreach (var vessel in vessels)
+                    {
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var annualAmount in annualAmounts)
+                {
+                    <tr>
+                        <td colspan="3">@annualAmount.Year</td>
+                        @foreach (var vessel in vessels)
+                        {
+                            <td>@(annualAmount.Vessels.SingleOrDefault(v => v.VesselName == vessel)?.AmountConsumed.ToString("F0") ?? "-")</td>
+                            <td>@(annualAmount.Vessels.SingleOrDefault(v => v.VesselName == vessel)?.AmountLoaded.ToString("F0") ?? "-")</td>
+                            <td>@(annualAmount.Vessels.SingleOrDefault(v => v.VesselName == vessel)?.AmountLoadedAnchor.ToString("F0") ?? "-")</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
