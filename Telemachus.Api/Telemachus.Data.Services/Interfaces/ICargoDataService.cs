@@ -15,5 +15,6 @@ namespace Telemachus.Data.Services.Interfaces
         Task<CargoModel> GetCargo(int cardoDetailId);
         Task DeleteCargo(int eventId);
         Task<List<CargoModel>> GetCargoStatus(string userId, DateTimeOffset timestamp);
+        Task<List<CargoDetailModel>> GetCargoDetailsInRange(string userId, DateTimeOffset minTimestamp, DateTimeOffset maxTimestamp);
     }
 }

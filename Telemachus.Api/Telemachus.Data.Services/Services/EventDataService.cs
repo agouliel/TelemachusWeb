@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Telemachus.Data.Interfaces.Services;
 using Telemachus.Data.Models;
 using Telemachus.Data.Models.Authentication;
+using Telemachus.Data.Models.Cargo;
 using Telemachus.Data.Models.DataTransferModels;
 using Telemachus.Data.Models.Events;
 using Telemachus.Data.Models.Ports;
@@ -112,16 +113,41 @@ namespace Telemachus.Data.Services.Services
         public async Task<List<ConditionEventsDataModel>> GetUserEventsAsync(string userId, int page, int pageSize, List<int> eventTypeIds, List<int> statuses, DateTime? from, DateTime? to)
         {
             var groupedEvents = await _eventRepository.GetUserEventsAsync(userId, page, pageSize, eventTypeIds, statuses, from, to);
+
+            var eventTimestamps = groupedEvents
+                .SelectMany(g => g.Events)
+                .Where(e => e.Timestamp.HasValue)
+                .Select(e => e.Timestamp.Value)
+                .ToList();
+
+            if (!eventTimestamps.Any()) return groupedEvents;
+
+            var allCargoDetails = await _cargoService.GetCargoDetailsInRange(userId, eventTimestamps.Min(), eventTimestamps.Max());
+
             foreach (var groupedEvent in groupedEvents)
             {
-                foreach (var userEvent in groupedEvent.Events)
+                foreach (var userEvent in groupedEvent.Events.Where(e => e.Timestamp.HasValue))
                 {
-                    if (userEvent.Timestamp.HasValue)
-                    {
-                        userEvent.Cargoes = await _cargoService.GetCargoStatus(userId, userEvent.Timestamp.Value);
-                    }
+                    var ts = userEvent.Timestamp.Value;
+                    userEvent.Cargoes = allCargoDetails
+                        .Where(cd =>
+                            cd.Cargo.StartedOn <= ts &&
+                            (cd.Cargo.CompletedOn == null || cd.Cargo.CompletedOn > ts) &&
+                            cd.Timestamp <= ts)
+                        .GroupBy(cd => cd.CargoId)
+                        .Select(g => new CargoModel
+                        {
+                            Id = g.First().Cargo.Id,
+                            GradeId = g.First().Cargo.GradeId,
+                            Grade = g.First().Cargo.Grade,
+                            Parcel = g.First().Cargo.Parcel,
+                            BusinessId = g.First().Cargo.BusinessId,
+                            CargoTonnage = (int)g.Sum(cd => cd.Quantity ?? 0)
+                        })
+                        .ToList();
                 }
             }
+
             return groupedEvents;
         }
 

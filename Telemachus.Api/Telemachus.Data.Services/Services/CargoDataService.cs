@@ -53,6 +53,22 @@ namespace Telemachus.Data.Services.Services
             return cargoes;
         }
 
+        public async Task<List<CargoDetailModel>> GetCargoDetailsInRange(string userId, DateTimeOffset minTimestamp, DateTimeOffset maxTimestamp)
+        {
+            return await _context.CargoDetails
+                .AsNoTracking()
+                .Include(cd => cd.Cargo).ThenInclude(c => c.Grade)
+                .Where(c =>
+                    c.Cargo.UserId == userId &&
+                    c.Cargo.StartedOn <= maxTimestamp &&
+                    (c.Cargo.CompletedOn.HasValue == false || c.Cargo.CompletedOn > minTimestamp) &&
+                    c.Timestamp.HasValue &&
+                    c.Timestamp <= maxTimestamp &&
+                    c.Quantity.HasValue &&
+                    c.Quantity != 0)
+                .ToListAsync();
+        }
+
         public async Task DeleteCargo(int eventId)
         {
             var targetEvent = await _context.Events
